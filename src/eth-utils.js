@@ -15,40 +15,46 @@ const getCoinFromChainId = chainId => {
 }
 
 /**
- * @param pathString keypath in string format e.g. m/44'/1'/0'/0
+ * @param keypathString keypath in string format e.g. m/44'/1'/0'/0
  * @returns keypath as array e.g. [2147483692, 2147483649, 2147483648, 0]
  */
-export const getPathFromString = pathString => {
-    const levels = pathString.toLowerCase().split('/');
+export const getKeypathFromString = keypathString => {
+    let hardened = false;
+    const levels = keypathString.toLowerCase().split('/');
     if (levels[0] !== 'm') throw new Error('Invalid keypath');
     return levels.flatMap(level => {
         if (level === 'm' || level === '') {
             return [];
         }
         if (level.substring(level.length - 1) === "'") {
-            level = +level.substring(0, level.length - 1) + HARDENED;
+            hardened = true
         }
         level = parseInt(level);
-        if (isNaN(level) || level < 0) throw new Error('Invalid keypath');
+        if (isNaN(level) || 
+            level < 0 ||
+            (!hardened && level >= HARDENED) ||
+            (hardened && level >= HARDENED * 2)
+           ) {
+            throw new Error('Invalid keypath');
+        }
+        if (hardened) level += HARDENED;
         return level;
     })
 }
 
 /**
- * @param pathArray keypath as an array of ints e.g. [44, 1, 0, 0]; or hardened [2147483692, 2147483649, 2147483648, 0]
+ * @param keypathArray keypath as an array of ints e.g. [2147483692, 2147483649, 2147483648, 0]
  * FIXME: This is a slight hack until the device is provided with the network by the integrating service
  * The only noticeable consequence is that when using the Rinkeby testnet, the user would see 'Ropsten' on device
  * @returns ETHCoin.ETH for mainnet ([44, 60]) and ETHCoin.RopstenETH for testnets ([44, 1])
  */
-export const getCoinFromPath = pathArray => {
-    if (pathArray[0] !== 44 && pathArray[0] !== 44 + HARDENED) {
+export const getCoinFromKeypath = keypathArray => {
+    if (keypathArray[0] !== 44 + HARDENED) {
         throw new Error('Invalid keypath');
     }
-    switch(pathArray[1]) {
-        case 60:
+    switch(keypathArray[1]) {
         case 60 + HARDENED:
             return firmwareAPI.messages.ETHCoin.ETH;
-        case 1:
         case 1 + HARDENED:
             return firmwareAPI.messages.ETHCoin.RopstenETH;
         default:
@@ -85,7 +91,7 @@ export const sanitizeEthTransactionData = sigData => {
         sanitizedData.nonce = 0;
         sanitizedData.value = '0';
         sanitizedData.coin = getCoinFromChainId(sigData.tx.chainId);
-        sanitizedData.path = getPathFromString(sigData.path);
+        sanitizedData.keypath = getKeypathFromString(sigData.keypath);
         if (sigData.tx.nonce) {
             sanitizedData.nonce = parseInt(sigData.tx.nonce, 16)
         }

@@ -1,6 +1,6 @@
 import './bitbox02-api-go.js';
 
-import { getPathFromString, getCoinFromPath } from './eth-utils';
+import { getKeypathFromString, getCoinFromKeypath } from './eth-utils';
 
 export const api = bitbox02;
 export const firmwareAPI = api.firmware;
@@ -142,13 +142,13 @@ export class BitBox02API {
         });
     }
 
-    // @return the eth xpub for a given coin and derivation path
-    async ethGetRootPubKey(path) {
-        const pathArray = getPathFromString(path);
-        const coin = getCoinFromPath(pathArray);
+    // @return the eth xpub for a given coin and derivation keypath
+    async ethGetRootPubKey(keypath) {
+        const keypathArray = getKeypathFromString(keypath);
+        const coin = getCoinFromKeypath(keypathArray);
         const xpub = await this.fw.js.AsyncETHPub(
             coin,
-            pathArray,
+            keypathArray,
             firmwareAPI.messages.ETHPubRequest_OutputType.XPUB,
             false,
             new Uint8Array()
@@ -157,14 +157,14 @@ export class BitBox02API {
     };
 
     // Displays the address of the provided ethereum account on device screen
-    async ethDisplayAddress(path) {
-        const pathArray = getPathFromString(path);
+    async ethDisplayAddress(keypath) {
+        const keypathArray = getKeypathFromString(keypath);
         // FIXME: see def of `getCoinFromPath()`, since we use the same keypath for Ropsten and Rinkeby,
         // the title for Rinkeby addresses will show 'Ropsten' instead
-        const coin = getCoinFromPath(pathArray);
+        const coin = getCoinFromKeypath(keypathArray);
         this.fw.js.AsyncETHPub(
             coin,
-            pathArray,
+            keypathArray,
             firmwareAPI.messages.ETHPubRequest_OutputType.ADDRESS,
             true,
             new Uint8Array()
@@ -177,7 +177,7 @@ export class BitBox02API {
         try {
             const sig = await this.fw.js.AsyncETHSign(
                 sigData.coin,
-                sigData.path,
+                sigData.keypath,
                 sigData.nonce,
                 sigData.gasPrice,
                 sigData.gasLimit,
