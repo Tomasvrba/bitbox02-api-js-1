@@ -1,5 +1,61 @@
 import { firmwareAPI, HARDENED } from './bitbox02';
 
+const getCoinFromChainId = chainId => {
+    switch(chainId) {
+        case 1:
+            return firmwareAPI.messages.ETHCoin.ETH;
+        case 3:
+            return firmwareAPI.messages.ETHCoin.RopstenETH;
+        case 4:
+        case 42:
+            return firmwareAPI.messages.ETHCoin.RinkebyETH;
+        default:
+            throw new Error('Unsupported network');
+    }
+}
+
+/**
+ * @param pathString keypath in string format e.g. m/44'/1'/0'/0
+ * @returns keypath as array e.g. [2147483692, 2147483649, 2147483648, 0]
+ */
+export const getPathFromString = pathString => {
+    const levels = pathString.toLowerCase().split('/');
+    if (levels[0] !== 'm') throw new Error('Invalid keypath');
+    return levels.flatMap(level => {
+        if (level === 'm' || level === '') {
+            return [];
+        }
+        if (level.substring(level.length - 1) === "'") {
+            level = +level.substring(0, level.length - 1) + HARDENED;
+        }
+        level = parseInt(level);
+        if (isNaN(level) || level < 0) throw new Error('Invalid keypath');
+        return level;
+    })
+}
+
+/**
+ * @param pathArray keypath as an array of ints e.g. [44, 1, 0, 0]; or hardened [2147483692, 2147483649, 2147483648, 0]
+ * FIXME: This is a slight hack until the device is provided with the network by the integrating service
+ * The only noticeable consequence is that when using the Rinkeby testnet, the user would see 'Ropsten' on device
+ * @returns ETHCoin.ETH for mainnet ([44, 60]) and ETHCoin.RopstenETH for testnets ([44, 1])
+ */
+export const getCoinFromPath = pathArray => {
+    if (pathArray[0] !== 44 && pathArray[0] !== 44 + HARDENED) {
+        throw new Error('Invalid keypath');
+    }
+    switch(pathArray[1]) {
+        case 60:
+        case 60 + HARDENED:
+            return firmwareAPI.messages.ETHCoin.ETH;
+        case 1:
+        case 1 + HARDENED:
+            return firmwareAPI.messages.ETHCoin.RopstenETH;
+        default:
+            throw new Error('Invalid keypath');
+    }
+}
+
 /**
  * Sanitizes signature data provided by the 'ethereumjs' library's Transaction type
  * https://github.com/ethereumjs/ethereumjs-tx/blob/master/src/transaction.ts
@@ -23,13 +79,13 @@ import { firmwareAPI, HARDENED } from './bitbox02';
  *   }
  * ```
  */
-export function sanitizeEthTransactionData(sigData) {
+export const sanitizeEthTransactionData = sigData => {
     try {
         let sanitizedData = {};
         sanitizedData.nonce = 0;
         sanitizedData.value = '0';
-        sanitizedData.coin = firmwareAPI.messages.ETHCoin.ETH;
-        sanitizedData.path = [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, sigData.account];
+        sanitizedData.coin = getCoinFromChainId(sigData.tx.chainId);
+        sanitizedData.path = getPathFromString(sigData.path);
         if (sigData.tx.nonce) {
             sanitizedData.nonce = parseInt(sigData.tx.nonce, 16)
         }

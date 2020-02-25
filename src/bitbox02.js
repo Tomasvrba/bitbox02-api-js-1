@@ -1,5 +1,7 @@
 import './bitbox02-api-go.js';
 
+import { getPathFromString, getCoinFromPath } from './eth-utils';
+
 export const api = bitbox02;
 export const firmwareAPI = api.firmware;
 export const HARDENED = 0x80000000;
@@ -140,11 +142,13 @@ export class BitBox02API {
         });
     }
 
-    // @return the eth xpub at m/44'/60'/0'/0
-    async ethGetRootPubKey() {
+    // @return the eth xpub for a given coin and derivation path
+    async ethGetRootPubKey(path) {
+        const pathArray = getPathFromString(path);
+        const coin = getCoinFromPath(pathArray);
         const xpub = await this.fw.js.AsyncETHPub(
-            firmwareAPI.messages.ETHCoin.ETH,
-            [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0],
+            coin,
+            pathArray,
             firmwareAPI.messages.ETHPubRequest_OutputType.XPUB,
             false,
             new Uint8Array()
@@ -153,10 +157,14 @@ export class BitBox02API {
     };
 
     // Displays the address of the provided ethereum account on device screen
-    async ethDisplayAddress(idx) {
+    async ethDisplayAddress(path) {
+        const pathArray = getPathFromString(path);
+        // FIXME: see def of `getCoinFromPath()`, since we use the same keypath for Ropsten and Rinkeby,
+        // the title for Rinkeby addresses will show 'Ropsten' instead
+        const coin = getCoinFromPath(pathArray);
         this.fw.js.AsyncETHPub(
-            firmwareAPI.messages.ETHCoin.ETH,
-            [44 + HARDENED, 60 + HARDENED, 0 + HARDENED, 0, idx],
+            coin,
+            pathArray,
             firmwareAPI.messages.ETHPubRequest_OutputType.ADDRESS,
             true,
             new Uint8Array()
@@ -209,7 +217,6 @@ export class BitBox02API {
           };
           return result;
         } catch(err) {
-            console.log('Error:', err)
           if (firmwareAPI.IsErrorAbort(err)) {
               throw new Error('User abort');
           } else {
