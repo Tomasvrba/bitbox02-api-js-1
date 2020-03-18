@@ -30,8 +30,19 @@
                     <button class="primary" id="btcSignSimple" autocomplete="off">Sign tx</button>
                 </div>
                 <div>
-                    <h5>Multi-sig</h5>
-                    <p>Currently only p2wsh/bech32, p2wsh-p2sh to follow.</p>
+                    <h5 class="m-bottom-none">Multi-sig</h5>
+                    <div class="m-bottom-xsmall">
+                        <details>
+                            <summary>Info</summary>
+                            <div class="panel">
+                                <ul>
+                                    <li>Currently only p2wsh/bech32, p2wsh-p2sh to follow.</li>
+                                    <li>before every tx sign or address verify, the multisig account should be setup on the device if it hasn't. makeExampleMultisigAccount in demo.js is doing that.</li>
+                                    <li>the demo currently does a 1-of-2 multisig demo of the device xpub and an arbitrary other one Zpub75oAskzNv1fFuPc4ue6dVyZETFdroU4Bw2NNTL6Yz8WzLx3athVwRKmuMoSmwqXFL5jw5ZEdbinsW5TSEiHQTFUuZg4Pk2v2mma1ERpHWgq</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
                     <button class="primary" id="btcAddressMultisig" autocomplete="off">Show address</button>
                     <button class="primary" id="btcSignMultisig" autocomplete="off">Sign tx</button>
                 </div>
